@@ -39,6 +39,7 @@ def gather_sequence_info(sequence_dir, detection_file):
         * min_frame_idx: Index of the first frame.
         * max_frame_idx: Index of the last frame.
 
+
     """
     image_dir = os.path.join(sequence_dir, "img1")
     image_filenames = {
