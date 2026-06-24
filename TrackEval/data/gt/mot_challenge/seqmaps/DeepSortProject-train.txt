@@ -1,4 +1,3 @@
-name
 TUD-Campus
 TUD-Stadtmitte
 KITTI-17
