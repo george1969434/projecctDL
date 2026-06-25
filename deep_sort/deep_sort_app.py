@@ -141,6 +141,8 @@ def replace_reid_features(detection_list, reid_mode):
             area = w * h
             ratio = w / max(h, 1.0)
             feature = np.array([cx, cy, area, ratio], dtype=np.float32)
+        elif reid_mode == "none":
+            feature = np.ones(4, dtype=np.float32)
         else:
             raise ValueError("Unknown reid_mode: {}".format(reid_mode))
 
@@ -283,8 +285,8 @@ def parse_args():
         "--display", help="Show intermediate tracking results",
         default=True, type=bool_string)
     parser.add_argument(
-        "--reid_mode", help="ReID feature mode: mars, bbox or center",
-        default="mars", choices=["mars", "bbox", "center"])
+        "--reid_mode", help="ReID feature mode: mars, bbox, center or none",
+        default="mars", choices=["mars", "bbox", "center", "none"])
     return parser.parse_args()
 
 
@@ -295,4 +297,7 @@ if __name__ == "__main__":
         args.min_confidence, args.nms_max_overlap, args.min_detection_height,
         args.max_cosine_distance, args.nn_budget, args.display,
         args.reid_mode)
+
+
+
 
