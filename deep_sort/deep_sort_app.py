@@ -2,6 +2,7 @@
 from __future__ import division, print_function, absolute_import
 
 import argparse
+import itertools
 import os
 
 import cv2
@@ -219,6 +220,71 @@ def bool_string(input_string):
     else:
         return (input_string == "True")
 
+
+def parse_float_list(input_string):
+    return [float(item.strip()) for item in input_string.split(",") if item.strip()]
+
+
+def parse_int_or_none_list(input_string):
+    values = []
+    for item in input_string.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        values.append(None if item.lower() == "none" else int(item))
+    return values
+
+
+def format_grid_value(value):
+    if value is None:
+        return "none"
+    return str(value).replace(".", "p")
+
+
+def make_grid_output_file(output_file, min_confidence,
+                          max_cosine_distance, nn_budget, nms_max_overlap):
+    base, ext = os.path.splitext(output_file)
+    if not ext:
+        ext = ".txt"
+    suffix = "_conf_%s_cos_%s_budget_%s_nms_%s" % (
+        format_grid_value(min_confidence),
+        format_grid_value(max_cosine_distance),
+        format_grid_value(nn_budget),
+        format_grid_value(nms_max_overlap))
+    return base + suffix + ext
+
+
+def run_grid(args):
+    min_confidences = parse_float_list(args.grid_min_confidence)
+    max_cosine_distances = parse_float_list(args.grid_max_cosine_distance)
+    nn_budgets = parse_int_or_none_list(args.grid_nn_budget)
+    nms_values = parse_float_list(args.grid_nms_max_overlap)
+
+    combinations = list(itertools.product(
+        min_confidences, max_cosine_distances, nn_budgets, nms_values))
+
+    print("Grid search combinations: %d" % len(combinations))
+
+    for index, (min_confidence, max_cosine_distance,
+                nn_budget, nms_max_overlap) in enumerate(combinations, start=1):
+        output_file = make_grid_output_file(
+            args.output_file, min_confidence, max_cosine_distance,
+            nn_budget, nms_max_overlap)
+
+        print("=" * 80)
+        print("Grid run %d/%d" % (index, len(combinations)))
+        print("min_confidence=%s, max_cosine_distance=%s, "
+              "nn_budget=%s, nms_max_overlap=%s" % (
+                  min_confidence, max_cosine_distance,
+                  nn_budget, nms_max_overlap))
+        print("output_file=%s" % output_file)
+
+        run(
+            args.sequence_dir, args.detection_file, output_file,
+            min_confidence, nms_max_overlap, args.min_detection_height,
+            max_cosine_distance, nn_budget, args.display)
+
+
 def parse_args():
     """ Parse command line arguments.
     """
@@ -253,12 +319,32 @@ def parse_args():
     parser.add_argument(
         "--display", help="Show intermediate tracking results",
         default=True, type=bool_string)
+    parser.add_argument(
+        "--grid_search", help="Run all parameter combinations",
+        default=False, type=bool_string)
+    parser.add_argument(
+        "--grid_min_confidence", help="Comma-separated min_confidence values",
+        default="0.3,0.4,0.5")
+    parser.add_argument(
+        "--grid_max_cosine_distance",
+        help="Comma-separated max_cosine_distance values",
+        default="0.2,0.3,0.4")
+    parser.add_argument(
+        "--grid_nn_budget",
+        help="Comma-separated nn_budget values. Use none for unlimited.",
+        default="50,100,150")
+    parser.add_argument(
+        "--grid_nms_max_overlap", help="Comma-separated nms_max_overlap values",
+        default="1.0")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    run(
-        args.sequence_dir, args.detection_file, args.output_file,
-        args.min_confidence, args.nms_max_overlap, args.min_detection_height,
-        args.max_cosine_distance, args.nn_budget, args.display)
+    if args.grid_search:
+        run_grid(args)
+    else:
+        run(
+            args.sequence_dir, args.detection_file, args.output_file,
+            args.min_confidence, args.nms_max_overlap, args.min_detection_height,
+            args.max_cosine_distance, args.nn_budget, args.display)

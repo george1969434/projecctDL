@@ -1,0 +1,12 @@
+﻿DeepSORT + YOLOv8s grid search results
+
+conf=0.3, cosine=0.2, nn_budget=100, nms=1.0 -> HOTA 41.667, MOTA 50.860, IDF1 55.163
+conf=0.3, cosine=0.3, nn_budget=100, nms=1.0 -> HOTA 41.129, MOTA 50.803, IDF1 54.633
+conf=0.4, cosine=0.2, nn_budget=100, nms=1.0 -> HOTA 41.287, MOTA 50.415, IDF1 54.867
+conf=0.4, cosine=0.3, nn_budget=100, nms=1.0 -> HOTA 40.466, MOTA 50.201, IDF1 53.172
+
+Best parameters:
+min_confidence=0.3
+max_cosine_distance=0.2
+nn_budget=100
+nms_max_overlap=1.0

@@ -3,7 +3,8 @@ import os
 from pathlib import Path
 import cv2
 import torch
-from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
+from torchvision.models.detection import fasterrcnn_mobilenet_v3_large_320_fpn
+from torchvision.models.detection import FasterRCNN_MobileNet_V3_Large_320_FPN_Weights
 from torchvision.transforms.functional import to_tensor
 
 def parse_args():
@@ -21,18 +22,20 @@ def main():
     image_files = sorted(image_dir.glob("*.jpg"), key=lambda p: int(p.stem))
     device = torch.device(args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu")
     # берем модель Faster R-CNN, обученную на COCO.
-    weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT
-    model = fasterrcnn_resnet50_fpn(weights=weights)
+    weights = FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT
+    model = fasterrcnn_mobilenet_v3_large_320_fpn(weights=weights)
     model.to(device)
     model.eval()
     os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
     with open(args.output_file, "w", encoding="utf-8") as f:
         with torch.no_grad():
-            for image_path in image_files:
+            for i, image_path in enumerate(image_files, start=1):
+                if i % 25 == 0 or i == 1 or i == len(image_files):
+                    print(f"Processed {i}/{len(image_files)} frames: {image_path.name}", flush=True)
                 frame_id = int(image_path.stem)
                 image_bgr = cv2.imread(str(image_path))
                 image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-                # картинку переводим tensor в RGB.
+                # картинку переводим tensor в RGB
                 image_tensor = to_tensor(image_rgb).to(device)
                 result = model([image_tensor])[0]
                 boxes = result["boxes"].detach().cpu()
