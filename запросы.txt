@@ -1,0 +1,23 @@
+overlays:
+cd C:\projectDL\deep_sort
+
+python deep_sort_app.py `
+  --sequence_dir "C:\projectDL\deep_sort\videos\TUD-Stadtmitte" `
+  --detection_file "C:\projectDL\deep_sort\resources\detections_yolov8s\TUD-Stadtmitte.npy" `
+  --output_file "C:\projectDL\deep_sort\outputs\TUD-Stadtmitte_yolov8s.txt" `
+  --min_confidence 0.3 `
+  --max_cosine_distance 0.2 `
+  --nn_budget 100 `
+  --display False
+
+python show_results.py `
+  --sequence_dir "C:\projectDL\deep_sort\videos\TUD-Stadtmitte" `
+  --result_file "C:\projectDL\deep_sort\outputs\TUD-Stadtmitte_yolov8s.txt" `
+  --output_file "C:\projectDL\deep_sort\overlays_best_yolov8s\TUD-Stadtmitte_yolov8s.avi" `
+  --update_ms 5
+
+python show_results.py `
+  --sequence_dir "C:\projectDL\deep_sort\videos\TUD-Stadtmitte" `
+  --result_file "C:\projectDL\deep_sort\outputs\TUD-Stadtmitte_yolov8s.txt" `
+  --output_file "C:\projectDL\deep_sort\overlays_best_yolov8s\TUD-Stadtmitte_yolov8s.avi" `
+  --update_ms 5
