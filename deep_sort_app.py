@@ -127,9 +127,35 @@ def create_detections(detection_mat, frame_idx, min_height=0):
     return detection_list
 
 
+def replace_reid_features(detection_list, reid_mode):
+    if reid_mode == "mars":
+        return detection_list
+
+    for detection in detection_list:
+        x, y, w, h = detection.tlwh
+        if reid_mode == "bbox":
+            feature = np.array([x, y, w, h], dtype=np.float32)
+        elif reid_mode == "center":
+            cx = x + w / 2.0
+            cy = y + h / 2.0
+            area = w * h
+            ratio = w / max(h, 1.0)
+            feature = np.array([cx, cy, area, ratio], dtype=np.float32)
+        elif reid_mode == "none":
+            feature = np.ones(4, dtype=np.float32)
+        else:
+            raise ValueError("Unknown reid_mode: {}".format(reid_mode))
+
+        norm = np.linalg.norm(feature)
+        if norm > 0:
+            feature = feature / norm
+        detection.feature = feature
+
+    return detection_list
+
 def run(sequence_dir, detection_file, output_file, min_confidence,
         nms_max_overlap, min_detection_height, max_cosine_distance,
-        nn_budget, display):
+        nn_budget, display, reid_mode="mars"):
     """Run multi-target tracker on a particular sequence.
 
     Parameters
@@ -170,6 +196,7 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         # Load image and generate detections.
         detections = create_detections(
             seq_info["detections"], frame_idx, min_detection_height)
+        detections = replace_reid_features(detections, reid_mode)
         detections = [d for d in detections if d.confidence >= min_confidence]
 
         # Run non-maximum suppression.
@@ -207,6 +234,9 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
     visualizer.run(frame_callback)
 
     # Store results.
+    output_dir = os.path.dirname(output_file)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     f = open(output_file, 'w')
     for row in results:
         print('%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1' % (
@@ -218,6 +248,7 @@ def bool_string(input_string):
         raise ValueError("Please Enter a valid Ture/False choice")
     else:
         return (input_string == "True")
+
 
 def parse_args():
     """ Parse command line arguments.
@@ -253,6 +284,9 @@ def parse_args():
     parser.add_argument(
         "--display", help="Show intermediate tracking results",
         default=True, type=bool_string)
+    parser.add_argument(
+        "--reid_mode", help="ReID feature mode: mars, bbox, center or none",
+        default="mars", choices=["mars", "bbox", "center", "none"])
     return parser.parse_args()
 
 
@@ -261,4 +295,9 @@ if __name__ == "__main__":
     run(
         args.sequence_dir, args.detection_file, args.output_file,
         args.min_confidence, args.nms_max_overlap, args.min_detection_height,
-        args.max_cosine_distance, args.nn_budget, args.display)
+        args.max_cosine_distance, args.nn_budget, args.display,
+        args.reid_mode)
+
+
+
+

@@ -96,3 +96,12 @@ ENV/
 deep_sort/videos/
 deep_sort/outputs/
 deep_sort/resources/
+# generated experiment artifacts
+outputs_grid/
+weights/
+*.pt
+*.npy
+
+# accidental nested copies
+TrackEval/
+deep_sort/
