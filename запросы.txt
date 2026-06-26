@@ -1,23 +1,80 @@
-overlays:
-cd C:\projectDL\deep_sort
+Полезные команды для запуска проекта DeepSORT
+
+
+cd deep_sort
+
+1. Запуск лучшей версии DeepSORT для одного видео
+
+Команда запускает DeepSORT на видео TUD-Stadtmitte с заранее подготовленными
+YOLOv8s-детекциями и ReID-признаками из .npy файла. На выходе получается файл
+с треками в папке outputs.
 
 python deep_sort_app.py `
-  --sequence_dir "C:\projectDL\deep_sort\videos\TUD-Stadtmitte" `
-  --detection_file "C:\projectDL\deep_sort\resources\detections_yolov8s\TUD-Stadtmitte.npy" `
-  --output_file "C:\projectDL\deep_sort\outputs\TUD-Stadtmitte_yolov8s.txt" `
+  --sequence_dir "videos/TUD-Stadtmitte" `
+  --detection_file "resources/detections_yolov8s/TUD-Stadtmitte.npy" `
+  --output_file "outputs/TUD-Stadtmitte_yolov8s.txt" `
   --min_confidence 0.3 `
   --max_cosine_distance 0.2 `
   --nn_budget 100 `
   --display False
 
-python show_results.py `
-  --sequence_dir "C:\projectDL\deep_sort\videos\TUD-Stadtmitte" `
-  --result_file "C:\projectDL\deep_sort\outputs\TUD-Stadtmitte_yolov8s.txt" `
-  --output_file "C:\projectDL\deep_sort\overlays_best_yolov8s\TUD-Stadtmitte_yolov8s.avi" `
-  --update_ms 5
+2. Создание overlay-видео для лучшей версии
 
 python show_results.py `
-  --sequence_dir "C:\projectDL\deep_sort\videos\TUD-Stadtmitte" `
-  --result_file "C:\projectDL\deep_sort\outputs\TUD-Stadtmitte_yolov8s.txt" `
-  --output_file "C:\projectDL\deep_sort\overlays_best_yolov8s\TUD-Stadtmitte_yolov8s.avi" `
+  --sequence_dir "videos/TUD-Stadtmitte" `
+  --result_file "outputs/TUD-Stadtmitte_yolov8s.txt" `
+  --output_file "overlays_best_yolov8s/TUD-Stadtmitte_yolov8s.avi" `
   --update_ms 5
+
+
+3. Запуск DeepSORT через .npy и создание нескольких overlay-видео
+
+
+$videos = @(
+  "TUD-Stadtmitte",
+  "KITTI-17",
+  "PETS09-S2L1"
+)
+
+foreach ($seq in $videos) {
+  Write-Host "Run DeepSORT YOLOv8s for $seq"
+
+  python deep_sort_app.py `
+    --sequence_dir "videos\$seq" `
+    --detection_file "resources\detections_yolov8s\$seq.npy" `
+    --output_file "outputs\$seq`_yolov8s.txt" `
+    --min_confidence 0.3 `
+    --max_cosine_distance 0.2 `
+    --nn_budget 100 `
+    --display False
+
+  Write-Host "Create overlay for $seq"
+
+  python show_results.py `
+    --sequence_dir "videos\$seq" `
+    --result_file "outputs\$seq`_yolov8s.txt" `
+    --output_file "overlays_best_yolov8s\$seq`_yolov8s.avi" `
+    --update_ms 5
+}
+
+
+
+4. Оценка результата в TrackEval
+
+cd ../TrackEval
+
+python scripts/run_mot_challenge.py `
+  --BENCHMARK DeepSortProject `
+  --SPLIT_TO_EVAL train `
+  --TRACKERS_TO_EVAL DeepSORT_YOLOv8s `
+  --METRICS HOTA CLEAR Identity `
+  --USE_PARALLEL False `
+  --NUM_PARALLEL_CORES 1 `
+  --DO_PREPROC False
+
+
+videos/<video_name>/img1                 - исходные кадры видео
+videos/<video_name>/det_yolov8s/det.txt  - bbox-детекции YOLOv8s
+resources/detections_yolov8s/*.npy       - bbox + ReID-признаки для deep_sort_app.py
+outputs/*_yolov8s.txt                    - итоговые треки DeepSORT
+overlays_best_yolov8s/*.avi              - видео с нарисованными треками
